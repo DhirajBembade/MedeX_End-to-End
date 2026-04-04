@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MedeX AI Assistant</title>
+
+    <!-- Bootstrap -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+    <!-- Markdown -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <!-- jQuery -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
+    <!-- Your CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+    <style>
+        /* Layout fix */
+        .chat-wrapper {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Sidebar history */
+        .sidebar {
+            width: 260px;
+            background: #ffffff;
+            border-right: 1px solid #e5e7eb;
+            padding: 15px;
+            overflow-y: auto;
+        }
+
+        .chat-history {
+            margin-top: 15px;
+        }
+
+        .chat-history-item {
+            padding: 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .chat-history-item:hover {
+            background: #f3f4f6;
+        }
+
+        /* Chat area */
+        .chat-area {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+        }
+
+        .card {
+            width: 100%;
+            max-width: 900px;
+            height: 100vh;
+            border: none;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Messages */
+        .msg_cotainer {
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            padding: 14px;
+            border-radius: 12px;
+            max-width: 70%;
+        }
+
+        .msg_cotainer_send {
+            background: #2563eb;
+            color: white;
+            padding: 14px;
+            border-radius: 12px;
+            max-width: 70%;
+        }
+
+        /* Input */
+        .input-group {
+            background: #f3f4f6;
+            border-radius: 10px;
+            padding: 5px;
+        }
+
+        .type_msg {
+            border: none;
+            background: transparent;
+        }
+
+        .type_msg:focus {
+            outline: none;
+        }
+
+        .send_btn {
+            background: transparent;
+            border: none;
+            color: #2563eb;
+            padding: 10px;
+        }
+
+        .send_btn:hover {
+            color: #1d4ed8;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="chat-wrapper">
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <h5>🩺 MedeX</h5>
+
+        <div class="sidebar-item" onclick="newChat()">➕ New Chat</div>
+
+        <!-- Chat History -->
+        <div id="history" class="chat-history"></div>
+    </div>
+
+    <!-- Chat -->
+    <div class="chat-area">
+        <div class="card">
+
+            <!-- Header -->
+            <div class="card-header d-flex align-items-center">
+                <img src="{{ url_for('static', filename='images/doctor.png') }}"
+                     style="height:45px;width:45px;border-radius:50%;margin-right:10px;">
+
+                <div>
+                    <h5>MedeX AI Doctor</h5>
+                    <small style="color:#6b7280;">Ask anything about health</small>
+                </div>
+            </div>
+
+            <!-- Messages -->
+            <div id="chatBox" class="msg_card_body"></div>
+
+            <!-- Input -->
+            <div class="card-footer">
+                <div class="input-group">
+
+                    <input id="text" class="form-control type_msg"
+                           placeholder="Ask your medical query..." />
+
+                    <div class="input-group-append">
+
+                        <button onclick="startVoice()" class="send_btn">
+                            <i class="fa-solid fa-microphone"></i>
+                        </button>
+
+                        <input type="file" id="fileUpload" hidden>
+                        <button onclick="document.getElementById('fileUpload').click()" class="send_btn">
+                            <i class="fa-solid fa-paperclip"></i>
+                        </button>
+
+                        <button onclick="sendMessage()" class="send_btn">
+                            <i class="fa-solid fa-paper-plane"></i>
+                        </button>
+
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+
+<script>
+
+// Add message
+function addMessage(content, type) {
+    let html = `
+    <div class="d-flex ${type === 'user' ? 'justify-content-end' : 'justify-content-start'} mb-3">
+        <div class="${type === 'user' ? 'msg_cotainer_send' : 'msg_cotainer'}">
+            ${marked.parse(content)}
+        </div>
+    </div>`;
+
+    $("#chatBox").append(html);
+    scrollToBottom();
+}
+
+
+// Scroll
+function scrollToBottom() {
+    $("#chatBox").scrollTop($("#chatBox")[0].scrollHeight);
+}
+
+
+// Streaming
+function streamText(element, text) {
+    let i = 0;
+    let interval = setInterval(() => {
+        element.html(marked.parse(text.substring(0, i)));
+        i++;
+        if (i > text.length) clearInterval(interval);
+    }, 10);
+}
+
+
+// Save chat
+function saveChat() {
+    localStorage.setItem("chat", $("#chatBox").html());
+}
+
+
+// Load chat
+function loadChat() {
+    $("#chatBox").html(localStorage.getItem("chat") || "");
+}
+
+
+// New chat + history
+function newChat() {
+    let preview = $("#chatBox").text().slice(0, 40);
+
+    if (preview) {
+        $("#history").prepend(`
+            <div class="chat-history-item">${preview}...</div>
+        `);
+    }
+
+    $("#chatBox").html("");
+    localStorage.removeItem("chat");
+}
+
+
+// Send message
+function sendMessage() {
+    let msg = $("#text").val();
+    if (!msg) return;
+
+    addMessage(msg, "user");
+    $("#text").val("");
+
+    let typing = $(`<div class="typing"><span></span><span></span><span></span></div>`);
+    $("#chatBox").append(typing);
+
+    $.post("/get", { msg: msg }, function(data) {
+        typing.remove();
+
+        let container = $("<div class='msg_cotainer'></div>");
+        $("#chatBox").append(container);
+
+        streamText(container, data);
+        saveChat();
+    });
+}
+
+
+// Voice
+function startVoice() {
+    let recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    recognition.start();
+    recognition.onresult = function(event) {
+        $("#text").val(event.results[0][0].transcript);
+    };
+}
+
+
+// Enter
+$("#text").keypress(function(e) {
+    if (e.which == 13) sendMessage();
+});
+
+
+loadChat();
+
+</script>
+
+</body>
+</html>
