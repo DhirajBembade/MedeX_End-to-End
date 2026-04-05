@@ -175,8 +175,22 @@ newgrp docker
 
 Go to:
 Repo → Settings → Actions → Runners → New Self-Hosted Runner
-Run the provided commands on EC2.
+Run the provided commands on EC2. 
 
+iff -
+🔧 GitHub Actions Runner — Troubleshooting
+
+If the self-hosted runner shows Offline or Not Idle in GitHub Actions, SSH into the EC2 instance and start the runner manually:
+
+'''
+cd actions-runner && ./run.sh
+'''
+
+To keep it running permanently (survives reboots):
+'''
+sudo ./svc.sh install
+sudo ./svc.sh start
+'''
 ---
 
 ## 🔑 Step 7: Setup GitHub Secrets
