@@ -44,21 +44,27 @@ jobs:
     - name: Push to ECR
       run: docker push ${{ secrets.ECR_REPO }}:${{ github.sha }}
 
+    # -------------------------------
+    # 🔍 DEBUG (TEMP - REMOVE LATER)
+    # -------------------------------
+    - name: Debug EC2 Host
+      run: echo "HOST='${{ secrets.EC2_HOST }}'"
+
+    # -------------------------------
+    # 🚀 Deploy
+    # -------------------------------
     - name: Deploy on EC2
       uses: appleboy/ssh-action@v1.0.3
       with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ubuntu
-        key: ${{ secrets.EC2_SSH_KEY }}
-        port: 22   # ✅ FIXED
+        host: "${{ secrets.EC2_HOST }}"   # ✅ FORCE STRING (CRITICAL FIX)
+        username: "ubuntu"
+        key: "${{ secrets.EC2_SSH_KEY }}" # ✅ ALSO QUOTED
+        port: "22"
         script: |
-          # Login to ECR (FIXED - single line)
           aws ecr get-login-password --region ${{ secrets.AWS_DEFAULT_REGION }} | docker login --username AWS --password-stdin ${{ secrets.ECR_REPO }}
 
-          # Pull image
           docker pull ${{ secrets.ECR_REPO }}:${{ github.sha }}
 
-          # Restart container
           docker stop medex-container || true
           docker rm medex-container || true
 
