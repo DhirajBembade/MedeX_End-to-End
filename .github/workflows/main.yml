@@ -10,10 +10,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6                         # ✅ Node.js 24 support
+        uses: actions/checkout@v6                         # ✅ Node.js 24 (was @v2)
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v6   # ✅ Node.js 24 support
+        uses: aws-actions/configure-aws-credentials@v6   # ✅ Node.js 24 (was @v1)
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -21,7 +21,7 @@ jobs:
 
       - name: Login to Amazon ECR
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
+        uses: aws-actions/amazon-ecr-login@v2             # ✅ Node.js 24 + masked password (was @v1)
         with:
           mask-password: true
 
@@ -34,7 +34,7 @@ jobs:
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT  # ✅ replaces deprecated ::set-output
 
   Continuous-Deployment:
     needs: Continuous-Integration
@@ -42,10 +42,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6                         # ✅ Node.js 24 support
+        uses: actions/checkout@v6                         # ✅ Node.js 24 (was @v3)
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v6   # ✅ Node.js 24 support
+        uses: aws-actions/configure-aws-credentials@v6   # ✅ Node.js 24 (was @v1)
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -53,7 +53,7 @@ jobs:
 
       - name: Login to Amazon ECR
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
+        uses: aws-actions/amazon-ecr-login@v2             # ✅ Node.js 24 + masked password (was @v1)
         with:
           mask-password: true
 
@@ -62,4 +62,8 @@ jobs:
           docker run -d \
             -e AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}" \
             -e AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
-            ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPO }}:latest
+            -e AWS_DEFAULT_REGION="${{ secrets.AWS_DEFAULT_REGION }}" \
+            -e PINECONE_API_KEY="${{ secrets.PINECONE_API_KEY }}" \
+            -e OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}" \
+            -p 8080:8080 \
+            "${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPO }}:latest"  # ✅ full env vars + port from original
