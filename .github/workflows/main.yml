@@ -16,7 +16,7 @@ jobs:
       uses: actions/checkout@v4
 
     # -------------------------------
-    # Setup Python (optional)
+    # Setup Python
     # -------------------------------
     - name: Setup Python
       uses: actions/setup-python@v5
@@ -45,7 +45,6 @@ jobs:
     # Login to ECR
     # -------------------------------
     - name: Login to Amazon ECR
-      id: login-ecr
       uses: aws-actions/amazon-ecr-login@v2
 
     # -------------------------------
@@ -56,14 +55,14 @@ jobs:
         docker build -t medex-chatbot .
 
     # -------------------------------
-    # Tag Image (FIXED)
+    # Tag Image
     # -------------------------------
     - name: Tag Docker Image
       run: |
         docker tag medex-chatbot:latest ${{ secrets.ECR_REPO }}:${{ github.sha }}
 
     # -------------------------------
-    # Push Image (FIXED)
+    # Push Image
     # -------------------------------
     - name: Push to ECR
       run: |
@@ -76,14 +75,21 @@ jobs:
       uses: appleboy/ssh-action@v1.0.3
       with:
         host: ${{ secrets.EC2_HOST }}
-        username: ubuntu
+        username: ubuntu   # ⚠️ change to ec2-user if Amazon Linux
         key: ${{ secrets.EC2_SSH_KEY }}
         script: |
+          # Login to ECR from EC2 (IMPORTANT FIX)
+          aws ecr get-login-password --region ${{ secrets.AWS_DEFAULT_REGION }} \
+          | docker login --username AWS --password-stdin ${{ secrets.ECR_REPO }}
+
+          # Pull latest image
           docker pull ${{ secrets.ECR_REPO }}:${{ github.sha }}
 
+          # Stop old container
           docker stop medex-container || true
           docker rm medex-container || true
 
+          # Run new container
           docker run -d -p 8080:8080 \
             --name medex-container \
             -e PINECONE_API_KEY=${{ secrets.PINECONE_API_KEY }} \
