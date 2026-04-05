@@ -150,7 +150,6 @@ Required Permissions:
 ```
 <your-account-id>.dkr.ecr.<region>.amazonaws.com/medicalbot
 ```
-319125697079.dkr.ecr.ap-south-1.amazonaws.com/medexchatbot
 ---
 
 ## 🖥️ Step 4: Launch EC2 Instance (Ubuntu)
