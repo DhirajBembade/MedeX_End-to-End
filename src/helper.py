@@ -3,7 +3,7 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.embeddings import HuggingFaceEmbeddings
 from typing import List
 from langchain.schema import Document
-
+#from langchain_core.documents import Document
 
 
 #Extract Data From the PDF File
